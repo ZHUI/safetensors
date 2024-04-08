@@ -127,6 +127,8 @@ def load_file(filename: Union[str, os.PathLike]) -> Dict[str, np.ndarray]:
     result = {}
     with safe_open(filename, framework="np") as f:
         for k in f.keys():
+            import time
+            print(f"load {k} {time.time()}")
             result[k] = f.get_tensor(k)
     return result
 

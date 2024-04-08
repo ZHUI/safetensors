@@ -16,12 +16,16 @@ use std::iter::FromIterator;
 use std::ops::Bound;
 use std::path::PathBuf;
 use std::sync::Arc;
+use log::{info,error};
+
+
 
 static TORCH_MODULE: GILOnceCell<Py<PyModule>> = GILOnceCell::new();
 static NUMPY_MODULE: GILOnceCell<Py<PyModule>> = GILOnceCell::new();
 static TENSORFLOW_MODULE: GILOnceCell<Py<PyModule>> = GILOnceCell::new();
 static FLAX_MODULE: GILOnceCell<Py<PyModule>> = GILOnceCell::new();
 static MLX_MODULE: GILOnceCell<Py<PyModule>> = GILOnceCell::new();
+
 
 fn prepare(tensor_dict: HashMap<String, &PyDict>) -> PyResult<HashMap<String, TensorView<'_>>> {
     let mut tensors = HashMap::with_capacity(tensor_dict.len());
@@ -373,9 +377,13 @@ struct Open {
 
 impl Open {
     fn new(filename: PathBuf, framework: Framework, device: Option<Device>) -> PyResult<Self> {
+
+       env_logger::builder().format_timestamp_millis().init();
+
         let file = File::open(&filename).map_err(|_| {
             PyFileNotFoundError::new_err(format!("No such file or directory: {filename:?}"))
         })?;
+        error!("Open new statrt");
         let device = device.unwrap_or(Device::Cpu);
 
         if device != Device::Cpu && framework != Framework::Pytorch {
@@ -502,6 +510,7 @@ impl Open {
     ///
     /// ```
     pub fn get_tensor(&self, name: &str) -> PyResult<PyObject> {
+        error!("get_tensor");
         let info = self.metadata.info(name).ok_or_else(|| {
             SafetensorError::new_err(format!("File does not contain tensor {name}",))
         })?;
@@ -514,8 +523,11 @@ impl Open {
                 let data =
                     &mmap[info.data_offsets.0 + self.offset..info.data_offsets.1 + self.offset];
 
+                error!("get_tensor mmap done");
+
                 let array: PyObject = Python::with_gil(|py| PyByteArray::new(py, data).into_py(py));
 
+                error!("get_tensor PyByteArray");
                 create_tensor(
                     &self.framework,
                     info.dtype,
@@ -589,6 +601,7 @@ impl Open {
                             .getattr(intern!(py, "to"))?
                             .call((device,), Some(kwargs))?;
                     }
+                    error!("get_tensor done");
                     Ok(tensor.into_py(py))
                     // torch.asarray(storage[start + n : stop + n], dtype=torch.uint8).view(dtype=dtype).reshape(shape)
                 })
@@ -704,6 +717,7 @@ impl safe_open {
     ///
     /// ```
     pub fn get_tensor(&self, name: &str) -> PyResult<PyObject> {
+        error!("710 get_tensor");
         self.inner()?.get_tensor(name)
     }
 
@@ -1039,6 +1053,7 @@ fn create_tensor(
             Framework::Numpy => tensor,
         };
         let tensor = tensor.into_py(py);
+        error!("create_tensor done!");
         Ok(tensor)
     })
 }
