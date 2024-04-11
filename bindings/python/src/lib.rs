@@ -524,7 +524,7 @@ impl Open {
                     &mmap[info.data_offsets.0 + self.offset..info.data_offsets.1 + self.offset];
 
                 error!("get_tensor mmap done");
-
+                println!("Hello");
                 let array: PyObject = Python::with_gil(|py| PyByteArray::new(py, data).into_py(py));
 
                 error!("get_tensor PyByteArray");
